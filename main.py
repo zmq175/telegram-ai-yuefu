@@ -19,7 +19,7 @@ def speech_synthesis_to_wave_file(text: str):
 
     headers = {
         "Content-Type": "application/ssml+xml",
-        "X-Microsoft-OutputFormat": "audio-16khz-32kbitrate-mono-mp3",
+        "X-Microsoft-OutputFormat": "riff-24khz-16bit-mono-pcm",
         "User-Agent": "YOUR_RESOURCE_NAME",
         "Authorization": "Bearer " + get_token(subscription_key, region)
     }
@@ -39,6 +39,7 @@ def speech_synthesis_to_wave_file(text: str):
     else:
         print("Error synthesizing speech: {}".format(response.text))
 
+
 def get_token(subscription_key, region):
     # construct request URL and headers
     url = "https://" + region + ".api.cognitive.microsoft.com/sts/v1.0/issueToken"
@@ -55,6 +56,7 @@ def get_token(subscription_key, region):
     else:
         raise ValueError("Failed to get token: {}".format(response.text))
 
+
 async def start(update, context):
     """Send a message when the command /start is issued."""
     await update.message.reply_text('Hi!')
@@ -69,12 +71,18 @@ async def speak(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     speech_synthesis_to_wave_file(user_input)
 
     # Upload to third-party service
-    files = {'sample': open("outputaudio.wav", 'rb')}
-    data = {
-        'fPitchChange': '1',
-        'sampleRate': '44100'
-    }
-    response = requests.post('https://u9c50-6a4b59ba.neimeng.seetacloud.com:6443/voiceChangeModel', files=files, data=data)
+    files = [
+        ('sample', (
+            'outputaudio.wav', open('outputaudio.wav', 'rb'),
+            'audio/wav'))
+    ]
+    url = "https://u9c50-6a4b59ba.neimeng.seetacloud.com:6443/voiceChangeModel"
+
+    payload = {'fPitchChange': '1',
+               'sampleRate': '44100'}
+    headers = {}
+
+    response = requests.request("POST", url, headers=headers, data=payload, files=files)
     await update.message.reply_voice(voice=response.content)
 
 
@@ -87,6 +95,7 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("speak", speak))
     application.run_polling()
+
 
 if __name__ == '__main__':
     main()
