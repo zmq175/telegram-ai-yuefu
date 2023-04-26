@@ -1,43 +1,59 @@
 import configparser
+import xml.etree.ElementTree as ET
 
 import requests
-from azure.cognitiveservices.speech import SpeechConfig, SpeechSynthesizer, \
-    ResultReason, CancellationReason
-from azure.cognitiveservices.speech.audio import AudioOutputConfig
 from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes, Application
 
 
 def speech_synthesis_to_wave_file(text: str):
-    """performs speech synthesis to a wave file"""
     config = configparser.ConfigParser()
     config.read('config.ini')
     subscription_key = config.get('AZURE', 'SPEECH_KEY')
     region = config.get('AZURE', 'SPEECH_REGION')
     print(f'KEY：{subscription_key}, REGION:{region}')
-    # Creates an instance of a speech config with specified subscription key and service region.
-    speech_config = SpeechConfig(subscription=subscription_key, region=region)
-    speech_config.speech_synthesis_voice_name = "zh-CN-YunfengNeural"
-    # Creates a speech synthesizer using file as audio output.
-    # Replace with your own audio file name.
-    file_name = "outputaudio.wav"
-    file_config = AudioOutputConfig(filename=file_name)
-    speech_synthesizer = SpeechSynthesizer(speech_config=speech_config, audio_config=file_config)
 
+    # construct request body in SSML format
+    ssml = "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='zh-CN'><voice name='zh-CN-YunfengNeural'>" \
+           + text + "</voice></speak>"
 
+    headers = {
+        "Content-Type": "application/ssml+xml",
+        "X-Microsoft-OutputFormat": "audio-16khz-32kbitrate-mono-mp3",
+        "User-Agent": "YOUR_RESOURCE_NAME",
+        "Authorization": "Bearer " + get_token(subscription_key, region)
+    }
 
-    # use the default speaker as audio output.
-    result = speech_synthesizer.speak_text_async(text).get()
-    # Check result
-    if result.reason == ResultReason.SynthesizingAudioCompleted:
+    # send the request and get the response
+    response = requests.post(
+        "https://" + region + ".tts.speech.microsoft.com/cognitiveservices/v1",
+        headers=headers,
+        data=ssml.encode('utf-8')
+    )
+
+    # check the response
+    if response.status_code == 200:
+        with open("outputaudio.wav", "wb") as f:
+            f.write(response.content)
         print("Speech synthesized for text [{}]".format(text))
-    elif result.reason == ResultReason.Canceled:
-        cancellation_details = result.cancellation_details
-        print("Speech synthesis canceled: {}".format(cancellation_details.reason))
-        if cancellation_details.reason == CancellationReason.Error:
-            print("Error details: {}".format(cancellation_details.error_details))
+    else:
+        print("Error synthesizing speech: {}".format(response.text))
 
-            print("Error details: {}".format(cancellation_details.error_details))
+def get_token(subscription_key, region):
+    # construct request URL and headers
+    url = "https://" + region + ".api.cognitive.microsoft.com/sts/v1.0/issueToken"
+    headers = {
+        "Ocp-Apim-Subscription-Key": subscription_key
+    }
+
+    # send the request and get the response
+    response = requests.post(url, headers=headers)
+
+    # extract token from the response
+    if response.status_code == 200:
+        return response.text
+    else:
+        raise ValueError("Failed to get token: {}".format(response.text))
 
 async def start(update, context):
     """Send a message when the command /start is issued."""
