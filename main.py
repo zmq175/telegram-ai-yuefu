@@ -74,7 +74,7 @@ async def speak(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         'fPitchChange': '1',
         'sampleRate': '44100'
     }
-    response = requests.post('http://121.41.44.246:7860/voiceChangeModel', files=files, data=data)
+    response = requests.post('https://u9c50-6a4b59ba.neimeng.seetacloud.com:6443/voiceChangeModel', files=files, data=data)
     await update.message.reply_voice(voice=response.content)
 
 
