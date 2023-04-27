@@ -52,8 +52,10 @@ def get_token(subscription_key, region):
 
     # extract token from the response
     if response.status_code == 200:
+        print("get token succeed")
         return response.text
     else:
+        print("get token failed")
         raise ValueError("Failed to get token: {}".format(response.text))
 
 
@@ -83,6 +85,8 @@ async def speak(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     headers = {}
 
     response = requests.request("POST", url, headers=headers, data=payload, files=files)
+    if response.status_code != 200:
+        print(response.text)
     await update.message.reply_voice(voice=response.content)
 
 
@@ -94,6 +98,7 @@ def main():
     application = Application.builder().token(config.get('TELEGRAM', 'TOKEN')).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("speak", speak))
+    print("start polling")
     application.run_polling()
 
 
