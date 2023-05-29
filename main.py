@@ -78,7 +78,7 @@ async def speak(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             'outputaudio.wav', open('outputaudio.wav', 'rb'),
             'audio/wav'))
     ]
-    url = "https://u9c50-6a4b59ba.neimeng.seetacloud.com:6443/voiceChangeModel"
+    url = "https://u99742-9438-6a636289.neimeng.seetacloud.com:6443/voiceChangeModel"
 
     payload = {'fPitchChange': '1',
                'sampleRate': '44100'}
